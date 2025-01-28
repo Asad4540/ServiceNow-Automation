@@ -17,22 +17,32 @@ for index, row in df.iterrows():
     asset_pdf_page = row['asset_pdf_page']
     solution_category = row['solution_category']
     
-    # Create solution category folder and et subfolder
+    # Create folders
     solution_folder = slugify(solution_category)
     et_folder = os.path.join(solution_folder, 'et')
     os.makedirs(et_folder, exist_ok=True)
-    
-    # Function to process the HTML content
+
+    # Modified HTML processing function to preserve styling
     def process_html(html_content, is_et=False):
-        soup = BeautifulSoup(html_content, 'html.parser')
+        # Use 'html5lib' parser for better HTML preservation
+        soup = BeautifulSoup(html_content, 'html5lib')
 
-        # Replace the text content of title-heading and lp-abstract
+        # Preserve existing styling while updating content
+        # Update title-heading text without removing existing spans/styles
         for title in soup.select('.title-heading'):
-            title.string = asset_name
-        for abstract in soup.select('.lp-abstract'):
-            abstract.string = asset_abstract
+            if title.find(True):  # Check if there are child elements
+                title.find(string=lambda t: True).replace_with(asset_name)
+            else:
+                title.string = asset_name
 
-        # Replace country list in <select> with id lp-country
+        # Update abstract text while preserving wrapper elements
+        for abstract in soup.select('.lp-abstract'):
+            if abstract.find(True):  # Preserve child elements if they exist
+                abstract.find(string=lambda t: True).replace_with(asset_abstract)
+            else:
+                abstract.string = asset_abstract
+
+        # Update country dropdown
         select_tag = soup.find('select', id='Country')
         if select_tag:
             select_tag.clear()
@@ -44,46 +54,39 @@ for index, row in df.iterrows():
                 option.string = country.strip()
                 select_tag.append(option)
 
-        
-
-        # Replace hidden input with asset_pdf_page
+        # Update PDF value
         hidden_input = soup.find('input', {'name': 'pdfValue', 'type': 'hidden'})
         if hidden_input:
             hidden_input['value'] = asset_pdf_page
-        
-        # Replace et-redirection href with corresponding link for email templates
+
+        # Email template specific changes
         if is_et:
             a_tag = soup.find('a', {'id': 'et-redirection'})
             if a_tag:
                 file_name = slugify(asset_name) + ".html"
                 a_tag['href'] = f'./{file_name}'
-        
+
+        # Preserve original formatting when outputting
         return str(soup)
-    
-    # Scrape and process landing page (example link)
+
+    # Process landing page
     landing_response = requests.get(example_link)
     landing_content = process_html(landing_response.text)
 
-    # Create slugified filename for landing page
-    file_name = slugify(f"{asset_name} {solution_category} english") + ".html"
-    file_path = os.path.join(solution_folder, file_name)
-    
-    # Save the landing page content
-    with open(file_path, 'w', encoding='utf-8') as file:
-        file.write(landing_content)
+    # Save landing page
+    landing_file = slugify(f"{asset_name} {solution_category} english") + ".html"
+    landing_path = os.path.join(solution_folder, landing_file)
+    with open(landing_path, 'w', encoding='utf-8') as f:
+        f.write(landing_content)
 
-    print(f"Processed {example_link} -> {file_path}")
-    
-    # Scrape and process email template (example et)
+    # Process email template
     et_response = requests.get(example_et)
     et_content = process_html(et_response.text, is_et=True)
 
-    # Create slugified filename for email template
-    et_file_name = slugify(f"{asset_name} {solution_category} english") + ".html"
-    et_file_path = os.path.join(et_folder, et_file_name)
+    # Save email template
+    et_file = slugify(asset_name) + ".html"
+    et_path = os.path.join(et_folder, et_file)
+    with open(et_path, 'w', encoding='utf-8') as f:
+        f.write(et_content)
 
-    # Save the email template content
-    with open(et_file_path, 'w', encoding='utf-8') as file:
-        file.write(et_content)
-
-    print(f"Processed {example_et} -> {et_file_path}")
+print("All files processed successfully with preserved styling!")
