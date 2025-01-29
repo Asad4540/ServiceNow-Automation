@@ -240,15 +240,15 @@
                         main_check.checked = true;
                     }
                 </script>
-</body>
+
 
 <footer>
     <div class="text-center">
 
 
         <br><span style="font-size:15px;"><span
-                style="font-family:verdana,geneva,sans-serif; font-size: 14px;">Copyright ©
-                2025 ITTECH News <br>
+                style="font-family:verdana,geneva,sans-serif; font-size: 14px;">Copyright &#169; <span id="currentyear"></span> ITTECH News
+                <br>
                 <a href="https://ittech-news.com/privacy-policy/" target="_blank" data-content="#" data-type="external"
                     rel="noopener"><span style="color:#0078D7;">
                         <span style="text-decoration:underline;">Privacy Policy</span>
@@ -257,5 +257,10 @@
 
 </footer>
 </div>
+<script>
+    let year = new Date().getFullYear();
+    $("#currentyear").text(year);
+</script>
+</body>
 
 </html>
