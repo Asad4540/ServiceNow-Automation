@@ -28,7 +28,7 @@ for index, row in df.iterrows():
     def process_html(html_content, is_et=False):
         # Use 'html5lib' parser for better HTML preservation
         soup = BeautifulSoup(html_content, 'html5lib')
-
+    
         # Preserve existing styling while updating content
         for title in soup.select('.title-heading'):
             if title.find(True):  # Check if there are child elements
