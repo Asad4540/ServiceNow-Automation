@@ -21,6 +21,8 @@ for sheet_name, df in df_sheets.items():
         country_list = row['country'].split(';')
         asset_pdf_page = row['asset_pdf_page']
         solution_category = row['solution_category']
+        language =  row['language']
+        cluster = row['cluster']
         
         # Create folders
         solution_folder = slugify(solution_category)
@@ -69,14 +71,14 @@ for sheet_name, df in df_sheets.items():
                     a_tag = tbody_tag.find('a')
                     if a_tag:
                         # Replace <a href> link with the landing page file in the root folder
-                        file_name = slugify(f"{asset_name} {solution_category} english") + ".html"
+                        file_name = slugify(f"{asset_name} {cluster} {language}") + ".html"
                         a_tag['href'] = f'../{file_name}'
 
             # Preserve original formatting when outputting
             return str(soup)
 
         # Generate a common file name for both landing page and email template
-        common_file_name = slugify(f"{asset_name} {solution_category} english") + ".html"
+        common_file_name = slugify(f"{asset_name} {cluster} {language}") + ".html"
 
         # Process landing page
         try:

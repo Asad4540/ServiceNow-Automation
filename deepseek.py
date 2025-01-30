@@ -4,89 +4,120 @@ from bs4 import BeautifulSoup
 from slugify import slugify
 import requests
 
-# Read the Excel input
-df = pd.read_excel('input_data.xlsx')
+# Direct URLs for landing pages and email templates
+example_link = "https://ittech-news.com/landing_pages/servicenow/asad-example-sn.html"
+example_et = "https://ittech-news.com/landing_pages/servicenow/sn-et-example.html"
 
-for index, row in df.iterrows():
-    # Variables from the Excel file
-    example_link = row['example link']
-    example_et = row['example et']
-    asset_name = row['asset_name']
-    asset_abstract = row['asset_abstract']
-    country_list = row['country'].split(';')
-    asset_pdf_page = row['asset_pdf_page']
-    solution_category = row['solution_category']
-    
-    # Create folders
-    solution_folder = slugify(solution_category)
-    et_folder = os.path.join(solution_folder, 'et')
-    os.makedirs(et_folder, exist_ok=True)
+# Read the Excel input for all sheets
+df_sheets = pd.read_excel('input_data.xlsx', sheet_name=None)
 
-    # Modified HTML processing function to preserve styling
-    def process_html(html_content, is_et=False):
-        # Use 'html5lib' parser for better HTML preservation
-        soup = BeautifulSoup(html_content, 'html5lib')
+# Initialize a counter to track filenames and avoid duplicates
+filename_counter = {}
 
-        # Preserve existing styling while updating content
-        # Update title-heading text without removing existing spans/styles
-        for title in soup.select('.title-heading'):
-            if title.find(True):  # Check if there are child elements
-                title.find(string=lambda t: True).replace_with(asset_name)
-            else:
-                title.string = asset_name
+# Iterate over each sheet and process the data
+for sheet_name, df in df_sheets.items():
+    print(f"Processing data from sheet: {sheet_name}")
+    for index, row in df.iterrows():
+        # Variables from the Excel file
+        asset_name = row['asset_name']
+        asset_abstract = row['asset_abstract']
+        country_list = row['country'].split(';')
+        asset_pdf_page = row['asset_pdf_page']
+        solution_category = row['solution_category']
+        
+        # Create folders
+        solution_folder = slugify(solution_category)
+        et_folder = os.path.join(solution_folder, 'et')
+        os.makedirs(et_folder, exist_ok=True)
 
-        # Update abstract text while preserving wrapper elements
-        for abstract in soup.select('.lp-abstract'):
-            if abstract.find(True):  # Preserve child elements if they exist
-                abstract.find(string=lambda t: True).replace_with(asset_abstract)
-            else:
-                abstract.string = asset_abstract
+        # Generate base filename and key for tracking duplicates
+        base_filename = slugify(f"{asset_name} {solution_category} english")
+        key = (solution_folder, base_filename)
+        
+        # Get current count for the filename, default to 0
+        count = filename_counter.get(key, 0)
+        
+        # Create the filename with incremental count if needed
+        if count == 0:
+            common_file_name = f"{base_filename}.html"
+        else:
+            common_file_name = f"{base_filename}-{count}.html"
+        
+        # Update the counter for the next occurrence
+        filename_counter[key] = count + 1
 
-        # Update country dropdown
-        select_tag = soup.find('select', id='Country')
-        if select_tag:
-            select_tag.clear()
-            default_option = soup.new_tag('option', value="")
-            default_option.string = "Country/Region *"
-            select_tag.append(default_option)
-            for country in country_list:
-                option = soup.new_tag('option', value=country.strip())
-                option.string = country.strip()
-                select_tag.append(option)
+        # Modified HTML processing function to preserve styling
+        def process_html(html_content, is_et=False):
+            # Use 'html5lib' parser for better HTML preservation
+            soup = BeautifulSoup(html_content, 'html5lib')
 
-        # Update PDF value
-        hidden_input = soup.find('input', {'name': 'pdfValue', 'type': 'hidden'})
-        if hidden_input:
-            hidden_input['value'] = asset_pdf_page
+            # Preserve existing styling while updating content
+            for title in soup.select('.title-heading'):
+                if title.find(True):  # Check if there are child elements
+                    title.find(string=lambda t: True).replace_with(asset_name)
+                else:
+                    title.string = asset_name
 
-        # Email template specific changes
-        if is_et:
-            a_tag = soup.find('a', {'id': 'et-redirection'})
-            if a_tag:
-                file_name = slugify(asset_name) + ".html"
-                a_tag['href'] = f'./{file_name}'
+            for abstract in soup.select('.lp-abstract'):
+                if abstract.find(True):
+                    abstract.find(string=lambda t: True).replace_with(asset_abstract)
+                else:
+                    abstract.string = asset_abstract
 
-        # Preserve original formatting when outputting
-        return str(soup)
+            # Update country dropdown
+            select_tag = soup.find('select', id='Country')
+            if select_tag:
+                select_tag.clear()
+                default_option = soup.new_tag('option', value="")
+                default_option.string = "Country/Region *"
+                select_tag.append(default_option)
+                for country in country_list:
+                    option = soup.new_tag('option', value=country.strip())
+                    option.string = country.strip()
+                    select_tag.append(option)
 
-    # Process landing page
-    landing_response = requests.get(example_link)
-    landing_content = process_html(landing_response.text)
+            # Update PDF value
+            hidden_input = soup.find('input', {'name': 'pdfValue', 'type': 'hidden'})
+            if hidden_input:
+                hidden_input['value'] = asset_pdf_page
 
-    # Save landing page
-    landing_file = slugify(f"{asset_name} {solution_category} english") + ".html"
-    landing_path = os.path.join(solution_folder, landing_file)
-    with open(landing_path, 'w', encoding='utf-8') as f:
-        f.write(landing_content)
+            # Email template specific changes
+            if is_et:
+                tbody_tag = soup.find('tbody', {'id': 'et-redirection'})
+                if tbody_tag:
+                    a_tag = tbody_tag.find('a')
+                    if a_tag:
+                        # Replace <a href> link with the landing page file in the root folder
+                        file_name = common_file_name  # Use the same common_file_name
+                        a_tag['href'] = f'../{file_name}'
 
-    # Process email template
-    et_response = requests.get(example_et)
-    et_content = process_html(et_response.text, is_et=True)
+            # Preserve original formatting when outputting
+            return str(soup)
 
-    # Save email template
-    et_file = slugify(asset_name) + ".html"
-    et_path = os.path.join(et_folder, et_file)
-    with open(et_path, 'w', encoding='utf-8') as f:
-        f.write(et_content)
+        # Process landing page
+        try:
+            landing_response = requests.get(example_link)
+            landing_response.raise_for_status()
+            landing_content = process_html(landing_response.text)
+            # Save landing page
+            landing_path = os.path.join(solution_folder, common_file_name)
+            with open(landing_path, 'w', encoding='utf-8') as f:
+                f.write(landing_content)
+            print(f"Landing page : {common_file_name} generated successfully.")
+        except Exception as e:
+            print(f"Failed to generate landing page {common_file_name}. Error: {e}")
 
-print("All files processed successfully with preserved styling!")
+        # Process email template
+        try:
+            et_response = requests.get(example_et)
+            et_response.raise_for_status()
+            et_content = process_html(et_response.text, is_et=True)
+            # Save email template in the 'et' folder with the same file name
+            et_path = os.path.join(et_folder, common_file_name)
+            with open(et_path, 'w', encoding='utf-8') as f:
+                f.write(et_content)             
+            print(f"Email template : {common_file_name} generated successfully.")
+        except Exception as e:
+            print(f"Failed to generate email template {common_file_name}. Error: {e}")
+
+print("All files processed successfully with progress updates!")
