@@ -5,11 +5,14 @@ from slugify import slugify
 import requests
 
 # Direct URLs for landing pages and email templates
-example_link = "https://ittech-news.com/landing_pages/servicenow/asad-example-sn.html"
+example_link = "https://ittech-news.com/landing_pages/servicenow/sn-lp-english.html"
 example_et = "https://ittech-news.com/landing_pages/servicenow/sn-et-example.html"
 
 # Read the Excel input for all sheets
 df_sheets = pd.read_excel('input_data.xlsx', sheet_name=None)
+
+# Initialize a counter to track filenames and avoid duplicates
+filename_counter = {}
 
 # Iterate over each sheet and process the data
 for sheet_name, df in df_sheets.items():
@@ -28,6 +31,22 @@ for sheet_name, df in df_sheets.items():
         solution_folder = slugify(solution_category)
         et_folder = os.path.join(solution_folder, 'et')
         os.makedirs(et_folder, exist_ok=True)
+        
+        # Generate base filename and key for tracking duplicates
+        base_filename = slugify(f"{asset_name} {cluster} {language}")
+        key = (solution_folder, base_filename)
+        
+        # Get current count for the filename, default to 0
+        count = filename_counter.get(key, 0)
+        
+        # Create the filename with incremental count if needed
+        if count == 0:
+            common_file_name = f"{base_filename}.html"
+        else:
+            common_file_name = f"{base_filename}-{count}.html"
+        
+        # Update the counter for the next occurrence
+        filename_counter[key] = count + 1
 
         # Modified HTML processing function to preserve styling
         def process_html(html_content, is_et=False):
@@ -78,7 +97,7 @@ for sheet_name, df in df_sheets.items():
             return str(soup)
 
         # Generate a common file name for both landing page and email template
-        common_file_name = slugify(f"{asset_name} {cluster} {language}") + ".html"
+        # common_file_name = slugify(f"{asset_name} {cluster} {language}") + ".html"
 
         # Process landing page
         try:

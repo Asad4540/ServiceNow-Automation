@@ -1,0 +1,78 @@
+
+.nvbr {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+}
+
+.header-section {
+    width: auto;
+    background-color: #86ED78;
+    padding: 4rem 3rem;
+}
+
+.title-heading {
+    color: white;
+    font-family: 'Oxygen', sans-serif;
+    font-size: 52px;
+    text-align: center;
+}
+
+.content-form {
+    background: #FFFFFF;
+}
+
+form {
+    font-size: 24px;
+}
+
+.btn-submit {
+    font-size: 18px;
+    border: solid 2px #FFFFFF;
+    color: #FFFFFF;
+    padding: 5px 10px;
+    background-color: #86ED78;
+    margin-top: 10px;
+}
+
+.card-body {
+    padding: 2rem 2.5rem;
+}
+
+.form-control {
+    margin: 2.5% 0%;
+    color: #495057;
+}
+
+.footer-text {
+    font-family: verdana, geneva, sans-serif;
+    font-size: 14px;
+}
+
+.privacy-policy-url {
+    color: #0078D7;
+}
+
+@media screen and (max-width: 768px) {
+    .header-section {
+        padding: 2rem 1rem;
+    }
+
+    .title-heading {
+        font-size: 28px;
+    }
+}
+
+@media screen and (max-width: 575px) {
+    .header-section {
+        padding: 1rem 1rem;
+    }
+
+    .title-heading {
+        font-size: 24px;
+    }
+}
