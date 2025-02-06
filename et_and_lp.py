@@ -7,6 +7,8 @@ import requests
 # Direct URLs for landing pages and email templates
 example_link = "https://ittech-news.com/landing_pages/servicenow/sn-lp-english.html"
 example_et = "https://ittech-news.com/landing_pages/servicenow/sn-et-example.html"
+link_path = "https://ittech-news.com/landing_pages"
+campaign_code = "Servicenow30012025"
 
 # Read the Excel input for all sheets
 df_sheets = pd.read_excel('input_data.xlsx', sheet_name=None)
@@ -17,6 +19,11 @@ filename_counter = {}
 # Iterate over each sheet and process the data
 for sheet_name, df in df_sheets.items():
     print(f"Processing data from sheet: {sheet_name}")
+    
+    # Initialize lists to store generated links for each row
+    et_links = []
+    lp_links = []
+     
     for index, row in df.iterrows():
         # Variables from the Excel file
         asset_name = row['asset_name']
@@ -47,6 +54,11 @@ for sheet_name, df in df_sheets.items():
         
         # Update the counter for the next occurrence
         filename_counter[key] = count + 1
+        
+        et_link = f"{link_path}/{campaign_code}/et/{common_file_name}"
+        lp_link = f"{link_path}/{campaign_code}/{common_file_name}"
+        et_links.append(et_link)
+        lp_links.append(lp_link)
 
         # Modified HTML processing function to preserve styling
         def process_html(html_content, is_et=False):
@@ -96,9 +108,6 @@ for sheet_name, df in df_sheets.items():
             # Preserve original formatting when outputting
             return str(soup)
 
-        # Generate a common file name for both landing page and email template
-        # common_file_name = slugify(f"{asset_name} {cluster} {language}") + ".html"
-
         # Process landing page
         try:
             landing_response = requests.get(example_link)
@@ -125,4 +134,18 @@ for sheet_name, df in df_sheets.items():
         except Exception as e:
             print(f"Failed to generate email template {common_file_name}. Error: {e}")
 
+    # Add new columns to the DataFrame
+    df['ET Links'] = et_links
+    df['LP Links'] = lp_links
+    # Update the sheet in the dictionary
+    df_sheets[sheet_name] = df
+    
+    # === NEW: Save the modified DataFrames to a new Excel file ===
+    output_path = f'{campaign_code}.xlsx'
+    with pd.ExcelWriter(output_path) as writer:
+        for sheet_name, df in df_sheets.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+print(f"\nAll data processed and links added to {output_path}!")  
 print("All files processed successfully with progress updates!")
+
