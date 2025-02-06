@@ -67,7 +67,7 @@ for sheet_name, df in df_sheets.items():
                     abstract.string = asset_abstract
 
             # Update country dropdown
-            select_tag = soup.find('select', id='Country')
+            select_tag = soup.find('select', id='country')
             if select_tag:
                 select_tag.clear()
                 default_option = soup.new_tag('option', value="")
